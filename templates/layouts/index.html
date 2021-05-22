@@ -1,0 +1,341 @@
+<!doctype html>
+<html>
+
+<head>
+    <!-- D3.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Load bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
+</head>
+
+<body>
+
+<header class="py-3 mb-4 border-bottom">
+    <div class="container d-flex flex-wrap justify-content-center">
+        <div class="d-flex align-items-center mb-3 mb-lg-0 me-lg-auto text-dark text-decoration-none"> 
+          <span class="fs-4">Rankfy</span>
+        </div>  
+         <div class="d-flex align-items-center mb-3 mb-lg-0 me-lg-auto text-dark text-decoration-none"> 
+          <span class="form-check-labels" style="border-radius: 5px 0px 0px 5px; background-color: gray; padding:5px">Scater</span>
+          <span class="form-check-labels" style="border-radius: 0px 5px 5px 0px; background-color: darkgray; padding:5px;">Barras</span>
+        </div>  
+      <form class="col-12 col-lg-auto mb-3 mb-lg-0">
+        <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+      </form>
+    </div>
+  </header>
+
+
+</div>
+
+<div class="row">
+  <div class="col-3 p-3" style="background-color: #212529; width: 260px;  color:white; border-radius: 5px;">
+
+
+      <div class="row" style="padding-bottom: 20px;">
+        <span class="form-check-labels" style="padding-left: 20px; padding-bottom: 20px;">Método de calculo:</span>
+        <div class="form-check col" style="padding-left: 70px;">
+          <input class="form-check-input" type="radio" name="contagem" id="contagem1" checked>
+          <label class="form-check-label" for="contagem1">
+            1
+          </label>
+        </div>
+        <div class="form-check col">
+          <input class="form-check-input" type="radio" name="contagem" id="contagem2">
+          <label class="form-check-label" for="contagem2">
+            2
+          </label>
+        </div>
+        <div class="form-check col">
+          <input class="form-check-input" type="radio" name="contagem" id="contagem3">
+          <label class="form-check-label" for="contagem3">
+            3
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <span style="padding-left: 5px;">Data: </span>
+        <div class="row" style="padding-left: 20px;">
+          <div>
+            <label for="data1" class="form-label text-secondary"> <small> De: <span id="dateIni" hidden="false"></span> </small> </label>
+            <input type="date" class="form-control" placeholder="" aria-label="" id="data1">
+          </div>
+          <div>
+            <label for="data2" class="form-label text-secondary"> <small> Até: <span id="dateFin" hidden="true"></span></small> </label>
+            <input type="date" class="form-control" placeholder="" aria-label="" id="data2">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-check form-switch">
+        <label class="form-label" for="badWords"> Palavras Ofenssivas </label>
+        <input class="form-check-input" type="checkbox" id="badWords">
+      </div>
+
+      <button onclick="attVis()" class="btn btn-primary">Recalcular</button>
+
+  
+
+  </div>
+
+
+
+
+
+  <div class="col-6" style="">
+    <div id="dataviz"></div>
+  </div>
+
+
+
+
+<div class="" style="background-color: #212529; min-height: 500px; max-height:500px; max-width: 27%; color:white; border-radius: 5px; overflow-y: auto; overflow-x: hidden; display: inline-block; padding: 20px; position: absolute; right: 15px;" >
+    <span style=" ">Mensagem: </span>
+    <span id="msnId" style=" margin-left: 5px; color: gray;"></span>
+    <span id="msnPos"style=" margin-left: 130px; margin-top: 10px; color:yellow; text-align: right;"></span>
+
+    <div style=" margin-top: 20px; background-color: gray; border-radius: 5px; padding: 10px; min-height: 250px">
+      <div id="msnText"></div>
+    </div>
+
+    <div id="msnWords" style="display: inline-block; margin-top: 20px; max-width: 275px;">
+    </div>
+</div>  
+
+</body>
+
+
+<footer>
+    
+    
+
+    <script>
+
+        let today = new Date().toISOString().slice(0, 10);
+
+        var rangeDate = [today, today];
+
+        var dados = {{dados | safe}}, x = [], y = [];
+        var myPlot = document.getElementById('dataviz'), msnId = document.getElementById('msnId'), msnPos = document.getElementById('msnPos'), msnText = document.getElementById('msnText'), msnWords = document.getElementById('msnWords');
+
+
+        var pesos = JSON.parse( 
+            '{'
+                +'"Tamanho" : 1,'
+    //            +'Word : 1,'
+    //            +'Caract : 1,'
+                +'"CaractEsp" : -1,'
+                +'"BadWrods" : -5'
+            +'}'
+        );
+
+        function resetMenssagem(){
+            msnId.innerHTML = '';
+            msnPos.innerHTML = '';
+            msnText.innerHTML = '';
+            msnWords.innerHTML = ''; 
+        }
+
+        function calculaPos( elemento, metodo, badWords){
+            tam = 0;
+
+
+            if( metodo == 2 ){
+                tam = Object.keys(elemento.words).length;
+            }else if ( metodo == 3 ) {
+                tam = elemento.countChars/Object.keys(elemento.words).length;
+            }else {
+                tam = elemento.countChars;
+            }
+
+
+            caracEsp = elemento.countCharsEsp * pesos.CaractEsp;
+
+
+            badWordsValue = 0
+
+            if (badWords) {
+
+            }
+
+
+            pos = (tam * pesos.Tamanho) + caracEsp + badWordsValue;
+
+            return pos;
+        }
+
+        function pesquisaPalavra(event){
+            console.log(event.target.getAttribute("word"));                                             //----Fazer
+        }
+
+        rangeDate[0] = rangeDate[0].replace(/[T]/gi, ' ');
+        rangeDate[0] = rangeDate[0].replace(/[+]/g, ' ');
+        var tp = rangeDate[0].indexOf(' ')
+        if(tp != -1)
+            rangeDate[0] = rangeDate[0].slice(0,tp)
+
+
+        rangeDate[1] = dados[0].date.replace(/T/gi, ' ');
+        rangeDate[1] = rangeDate[1].replace(/[+]/g, ' ');
+        tp = rangeDate[1].indexOf(' ')
+        if(tp != -1)
+            rangeDate[1] = rangeDate[1].slice(0,tp)
+
+
+//        rangeDate[1] = dados[0].date;
+        for (var i = dados.length - 1; i >= 0; i--) {
+            dados[i].pos = calculaPos(dados[i], 1, false);
+
+            dados[i].date = dados[i].date.replace(/[T]/gi, ' ');
+            dados[i].date = dados[i].date.replace(/[+]/g, ' ');
+            var tp = dados[i].date.indexOf(' ')
+            if(tp != -1)
+                dados[i].date = dados[i].date.slice(0,tp)
+
+            if (dados[i].date < rangeDate[0])
+                rangeDate[0] = dados[i].date;
+            else if (dados[i].date > rangeDate[1])
+                rangeDate[1] = dados[i].date;
+
+            x.push(dados[i].id);
+            y.push(dados[i].pos);
+        }
+
+
+
+        
+        document.getElementById('data1').setAttribute("value", rangeDate[0]);
+        document.getElementById('data1').setAttribute("min", rangeDate[0]);
+        document.getElementById('data1').setAttribute("max", rangeDate[1]);
+        document.getElementById('data2').setAttribute("value", rangeDate[1]);
+        document.getElementById('data2').setAttribute("min", rangeDate[0]);
+        document.getElementById('data2').setAttribute("max", rangeDate[1]);
+
+
+
+
+
+        var data = [ { x:x, y:y, type:'scatter', mode:'markers', marker:{size:10} } ],
+        layout = {
+            hovermode:'closest',
+            title:'Teste',
+        };
+
+        var config = {
+            responsive: true,
+//            scrollZoom: true,
+            displayModeBar: true,
+//            modeBarButtonsToRemove: ['toImage'], 
+        }
+
+
+        Plotly.newPlot('dataviz', data, layout, config);
+
+        function resetClickers(){
+            myPlot.on('plotly_click', function(data){
+                var x = 0;
+                var aux;
+
+                for(var i=0; i < data.points.length; i++){
+                    x = data.points[i].x;
+                }
+
+                if (x){
+                    msnId.innerHTML = "#" + dados[x].id;
+                    msnPos.innerHTML = dados[x].pos;
+                    msnText.innerHTML = '"' + dados[x].menssagem + '"';
+                    msnWords.innerHTML = '';
+
+                    var keys = Object.keys(dados[x].words);
+
+                    for (var i = 0; i < keys.length; i++) {
+                        aux = document.createElement("div");
+                        aux.innerHTML = keys[i];
+    //                    aux.setAttribute("class","form-check-labels");
+                        aux.setAttribute("id","word");
+                        aux.setAttribute("word",keys[i]);
+                        aux.setAttribute("onclick","pesquisaPalavra(event)");
+                        aux.setAttribute("style","border-radius: 5px; text-align: center; min-width:20px; background-color: gray; margin: 7px 15px 0px 0px; padding:5px; display: inline-block");
+                        msnWords.appendChild(aux);
+    /*                    document.getElementById('word-'+i).addEventListener('click', function(){
+                            alert(document.getElementById('word-'+i).innerHTML);
+                        });*/
+                    }
+                }else{
+                    resetMenssagem();
+                }
+
+            });
+        }
+
+
+        resetClickers();
+
+        function changeDates(date1, date2){
+            document.getElementById('data1').setAttribute("value", date2);
+            document.getElementById('data2').setAttribute("value", date1);
+        }
+
+        function attVis(){
+            var newX = [], newY = [];
+
+            var metodo = document.querySelector("input[name=contagem]:checked").id;
+            var dateIni = document.getElementById('data1');
+            var dateFin = document.getElementById('data2');
+            var badWords = document.getElementById('badWords').checked;
+
+
+            if( document.getElementById('contagem2').checked ){
+                metodo = 2;
+            }else if ( document.getElementById('contagem3').checked ) {
+                metodo = 3;
+            }else {
+                metodo = 1;
+            }
+
+
+            if(aux1 > aux2){
+                changeDates(dateFin.value, dateIni.value);
+            }
+
+
+            dateIni = dateIni.value;
+            dateFin = dateFin.value;
+
+            var aux = 0;
+
+            for (var i = dados.length - 1; i >= 0; i--) {
+                if(dados[i].date >= dateIni || dateIni == rangeDate[0]){
+                    if(dados[i].date <= dateFin || dateFin == rangeDate[1]){
+                        aux = calculaPos(dados[i], metodo, badWords);
+
+                        newX.push(dados[i].id);
+                        newY.push(aux);
+                    }
+                }
+            }
+
+            var data_updated = [ { x:newX, y:newY, type:'scatter', mode:'markers', marker:{size:10}} ];
+
+/*            Plotly.newPlot('dataviz', data_updated); function adjustValue1(value) {
+                data_updated[0]['y'][0] = value; 
+                Plotly.redraw('dataviz');
+            }*/
+//            Plotly.deleteTraces('dataviz', 0); 
+//            Plotly.react('dataviz', data_updated);
+            Plotly.purge('dataviz');
+            Plotly.newPlot('dataviz', data_updated, layout, config);
+            
+            resetClickers();
+        }
+
+
+    </script>
+</footer>
+
+</html>
